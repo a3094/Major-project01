@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv
+
+# Data files (large datasets)
+landslide-backend/data/
+landslide-backend/dataset/
+*.h5
+*.hdf5
+
+# Model files (can be large)
+*.joblib
+*.pkl
+*.pth
+*.ckpt
+*.h5
+
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment variables
+.env
+.env.local
+
+# Build outputs
+dist/
+build/
+*.egg-info/
+
+# Logs
+*.log
+
+# Results and outputs
+landslide-backend/results/
+*.png
+*.jpg
+*.jpeg
+!landslide-backend/docs/*.svg
+
+# Cache
+.cache/
+*.cache
+
