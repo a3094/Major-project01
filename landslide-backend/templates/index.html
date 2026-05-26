@@ -4,6 +4,8 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Landslide Risk Demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
   <style>
     :root { color-scheme: light; }
     body { font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, 'Helvetica Neue', Arial, 'Noto Sans', 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol'; margin: 0; padding: 24px; line-height: 1.5; background: radial-gradient(1200px 600px at 10% 10%, #e0f2fe40, transparent), radial-gradient(900px 600px at 90% 10%, #e9d5ff40, transparent); }
@@ -67,6 +69,49 @@
     }
   </style>
   <script>
+    const maps = {};
+    const markers = {};
+
+    function showMap(containerId, lat, lon, locationName, riskLevel) {
+      const mapDiv = document.getElementById(containerId);
+      mapDiv.style.display = 'block';
+      
+      setTimeout(() => {
+        if (!maps[containerId]) {
+          maps[containerId] = L.map(containerId).setView([lat, lon], 10);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+          }).addTo(maps[containerId]);
+        } else {
+          maps[containerId].setView([lat, lon], 10);
+        }
+        
+        if (markers[containerId]) {
+          maps[containerId].removeLayer(markers[containerId]);
+        }
+        
+        let markerColor = '#16a34a'; // Low
+        if (riskLevel.toLowerCase() === 'high') {
+          markerColor = '#dc2626'; // High
+        } else if (riskLevel.toLowerCase() === 'medium') {
+          markerColor = '#f59e0b'; // Medium
+        }
+        
+        markers[containerId] = L.circleMarker([lat, lon], {
+          radius: 10,
+          fillColor: markerColor,
+          color: '#fff',
+          weight: 2,
+          opacity: 1,
+          fillOpacity: 0.8
+        }).addTo(maps[containerId]);
+        
+        markers[containerId].bindPopup(`<b>${locationName}</b><br>Risk: ${riskLevel}`).openPopup();
+        maps[containerId].invalidateSize();
+      }, 100);
+    }
+
     function riskBadge(level) {
       const l = (level||'').toLowerCase();
       if (l === 'high') return '<span class="badge badge-high">High risk</span>';
@@ -138,6 +183,9 @@
         </div>
       `;
       out.classList.add('fade-in');
+      if (data.latitude && data.longitude) {
+        showMap('map-location', data.latitude, data.longitude, data.location || 'Selected Location', data.risk_level);
+      }
     }
 
     function renderImage(data) {
@@ -176,6 +224,9 @@
         </div>
       `;
       out.classList.add('fade-in');
+      if (data.latitude && data.longitude) {
+        showMap('map-combined', data.latitude, data.longitude, data.location || 'Selected Location', data.risk_level);
+      }
     }
 
     async function fetchCombined(e) {
@@ -227,6 +278,7 @@
             </div>
           </form>
           <div id="location-out"></div>
+          <div id="map-location" style="height: 250px; border-radius: 12px; margin-top: 14px; border: 1px solid rgba(0,0,0,0.12); display: none; z-index: 1;"></div>
         </div>
 
         <div class="card">
@@ -268,6 +320,7 @@
           </div>
         </form>
         <div id="combined-out"></div>
+        <div id="map-combined" style="height: 250px; border-radius: 12px; margin-top: 14px; border: 1px solid rgba(0,0,0,0.12); display: none; z-index: 1;"></div>
       </div>
 
       <div class="card">

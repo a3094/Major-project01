@@ -124,12 +124,35 @@ def stable_rng(lat: float, lon: float) -> random.Random:
     seed = int((lat + 90.0) * 1000) * 100000 + int((lon + 180.0) * 1000)
     return random.Random(seed)
 
-def simulate_environment(lat: float, lon: float) -> Dict[str, float | str]:
+def simulate_environment(lat: float, lon: float, address_string: str = "") -> Dict[str, float | str]:
     rng = stable_rng(lat, lon)
-    rainfall = rng.uniform(50.0, 500.0)
-    slope = min(60.0, max(0.0, abs(math.sin(math.radians(lat)) * 40.0 + rng.uniform(-5.0, 5.0) + 15.0)))
-    vegetation = min(1.0, max(0.0, rng.uniform(0.1, 0.9)))
-    soil = rng.choice(SOIL_TYPES)
+    
+    # Check if the geocoded address matches any known mountainous/hilly keywords
+    address_lower = address_string.lower()
+    mountainous_keywords = [
+        "sikkim", "himachal", "uttarakhand", "kashmir", "meghalaya", "mizoram", 
+        "manipur", "nagaland", "arunachal", "tripura", "shimla", "darjeeling", 
+        "ooty", "munnar", "ghats", "himalaya", "nepal", "alps", "andes", 
+        "rockies", "mountain", "hill", "slope", "ridge", "peak", "canyon", 
+        "dehradun", "srinagar", "gulmarg", "manali", "leh", "ladakh", "coorg", 
+        "lonavala", "mahabaleshwar", "sahyadri", "darjiling", "cherrapunji", 
+        "wayanad", "idukki", "nilgiri"
+    ]
+    is_mountainous = any(kw in address_lower for kw in mountainous_keywords)
+    
+    if is_mountainous:
+        # Mountainous/hilly terrain behavior (High probability of steep slopes and high rainfall)
+        rainfall = rng.uniform(180.0, 500.0)
+        slope = rng.uniform(15.0, 48.0)
+        vegetation = rng.uniform(0.1, 0.65)
+        soil = rng.choice(["Clay", "Peaty", "Silt", "Loamy"])
+    else:
+        # Plain/flat terrain behavior (Low probability of steep slopes)
+        rainfall = rng.uniform(30.0, 180.0)
+        slope = rng.uniform(0.5, 7.5)
+        vegetation = rng.uniform(0.45, 0.95)
+        soil = rng.choice(["Sandy", "Chalky", "Loamy"])
+        
     return {
         "rainfall_mm": round(rainfall, 1),
         "slope_deg": round(slope, 1),
@@ -478,6 +501,9 @@ def predict_combined():
         landslide_detected = bool(img_result.get("label") == "Landslide")
         image_probability = float(img_result.get("probability", img_result.get("risk_score", 0.0)))
         response_slim = {
+            "location": dummy.get("location"),
+            "latitude": loc_lat,
+            "longitude": loc_lon,
             "risk_level": dummy.get("risk_level"),
             "landslide_detected": landslide_detected,
             "image_probability": round(image_probability, 2),
@@ -494,7 +520,7 @@ def predict_combined():
 
     lat = float(geocode.latitude)
     lon = float(geocode.longitude)
-    env = simulate_environment(lat, lon)
+    env = simulate_environment(lat, lon, geocode.address)
     rainfall_mm = float(env["rainfall_mm"])
     slope_deg = float(env["slope_deg"])
     vegetation_index = float(env["vegetation_index"])
@@ -512,6 +538,9 @@ def predict_combined():
     landslide_detected = bool(img_result.get("label") == "Landslide")
     image_probability = float(img_result.get("probability", img_result.get("risk_score", 0.0)))
     response_slim = {
+        "location": location_name,
+        "latitude": round(lat, 6),
+        "longitude": round(lon, 6),
         "risk_level": risk_level,
         "landslide_detected": landslide_detected,
         "image_probability": round(image_probability, 2),
@@ -543,7 +572,7 @@ def predict():
     lat = float(geocode.latitude)
     lon = float(geocode.longitude)
 
-    env = simulate_environment(lat, lon)
+    env = simulate_environment(lat, lon, geocode.address)
     rainfall_mm = float(env["rainfall_mm"])
     slope_deg = float(env["slope_deg"])
     vegetation_index = float(env["vegetation_index"])
